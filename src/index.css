@@ -269,3 +269,227 @@ textarea.form-control { resize: vertical; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* =====================================================
+   MOBILE RESPONSIVE — max-width 768px
+   ===================================================== */
+@media (max-width: 768px) {
+
+  /* ── Layout: hide sidebar, show bottom nav ───────── */
+  .sidebar {
+    display: none;
+  }
+
+  .main-area {
+    padding-bottom: 70px; /* space for bottom nav */
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  .topbar {
+    padding: 0 14px;
+    height: 50px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+  }
+
+  /* ── Grids → single column ───────────────────────── */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Cards ───────────────────────────────────────── */
+  .card-body {
+    padding: 12px;
+  }
+
+  .card-header {
+    padding: 12px;
+  }
+
+  /* ── Tables: horizontal scroll ───────────────────── */
+  .card-body table,
+  .card > table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* ── Stat cards ──────────────────────────────────── */
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-sub {
+    font-size: 10px;
+  }
+
+  /* ── Profile header ──────────────────────────────── */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .profile-badges {
+    justify-content: center;
+  }
+
+  /* ── Ride live tracker ───────────────────────────── */
+  .ride-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .ride-stat-val {
+    font-size: 18px;
+  }
+
+  /* ── Map height on mobile ────────────────────────── */
+  .leaflet-container {
+    height: 260px !important;
+  }
+
+  /* ── Topbar: hide New Rental text, keep icon ─────── */
+  .topbar-new-rental-text {
+    display: none;
+  }
+
+  /* ── Filter chips: scrollable row ───────────────── */
+  .filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chip {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Modals: full width on mobile ────────────────── */
+  .modal {
+    width: 95vw;
+    padding: 18px;
+  }
+
+  /* ── Chat area ───────────────────────────────────── */
+  .chat-area {
+    height: 160px;
+  }
+
+  /* ── Tabs: scrollable ────────────────────────────── */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* =====================================================
+   EXTRA SMALL — max-width 480px (phones)
+   ===================================================== */
+@media (max-width: 480px) {
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .vehicle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .topbar-title {
+    font-size: 13px;
+  }
+}
+
+/* =====================================================
+   BOTTOM NAV BAR — shows only on mobile
+   ===================================================== */
+.bottom-nav {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62px;
+    background: #0a2e24;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 50;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 4px;
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+    flex: 1;
+    font-size: 10px;
+  }
+
+  .bottom-nav-item i {
+    font-size: 20px;
+  }
+
+  .bottom-nav-item.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .bottom-nav-item .nav-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--danger);
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+}
