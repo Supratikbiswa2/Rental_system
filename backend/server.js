@@ -5,7 +5,12 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://veloride.vercel.app', // placeholder — we'll update with real URL after deploy
+  ],
+}));
 app.use(express.json());
 
 // Routes
