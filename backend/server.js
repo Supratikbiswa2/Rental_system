@@ -8,7 +8,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://rental-system-three-ashy.vercel.apphttps://rental-system-three-ashy.vercel.app',
+    'https://rental-system-three-ashy.vercel.app',
   ],
 }));
 app.use(express.json());
