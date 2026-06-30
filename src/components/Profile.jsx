@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import api from '../api/axios';
 
-export default function Profile({ user }) {
+export default function Profile({ user, onSignOut }) {
+
   // ── State ──────────────────────────────────────────────────────────────
-  const [profile,     setProfile]     = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [editMode,    setEditMode]    = useState(false);
-  const [saveMsg,     setSaveMsg]     = useState('');   // success/error feedback
-  const [prefs,       setPrefs]       = useState({
+  const [profile,  setProfile]  = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [saveMsg,  setSaveMsg]  = useState('');
+
+  const [prefs, setPrefs] = useState({
     emailNotifications: true,
     pushNotifications:  true,
     marketingEmails:    false,
@@ -21,16 +23,17 @@ export default function Profile({ user }) {
   const [city,     setCity]     = useState('');
 
   // ── Derived display values ─────────────────────────────────────────────
-  const email      = user?.email ?? '—';
+  const email = user?.email ?? '—';
+
   const avatarText = fullName
     ? fullName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : email.slice(0, 2).toUpperCase();
 
-  const memberSince = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '—';
 
-  // ── Load profile from Supabase on mount ───────────────────────────────
+  // ── Load profile on mount ──────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     fetchProfile();
@@ -38,76 +41,50 @@ export default function Profile({ user }) {
 
   const fetchProfile = async () => {
     setLoading(true);
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = row not found (first login, profile not created yet)
-      console.error('Error fetching profile:', error.message);
-    }
-
-    if (data) {
+    try {
+      const { data } = await api.get('/profile');
       setProfile(data);
-      setFullName(data.full_name ?? user.user_metadata?.full_name ?? '');
-      setPhone(data.phone ?? '');
-      setCity(data.city ?? '');
-      setPrefs({
-        emailNotifications: data.pref_email_notifications ?? true,
-        pushNotifications:  data.pref_push_notifications  ?? true,
-        marketingEmails:    data.pref_marketing_emails    ?? false,
-        darkMode:           data.pref_dark_mode           ?? false,
+      setFullName(data.fullName ?? '');
+      setPhone(data.phone    ?? '');
+      setCity(data.city      ?? '');
+      setPrefs(data.prefs ?? {
+        emailNotifications: true,
+        pushNotifications:  true,
+        marketingEmails:    false,
+        darkMode:           false,
       });
-    } else {
-      // No profile row yet — prefill from OAuth metadata if available
-      setFullName(user.user_metadata?.full_name ?? user.user_metadata?.name ?? '');
+    } catch (err) {
+      console.error('Failed to load profile:', err);
     }
-
     setLoading(false);
   };
 
-  // ── Save profile changes ───────────────────────────────────────────────
+  // ── Save profile ───────────────────────────────────────────────────────
   const saveProfile = async () => {
     setSaving(true);
     setSaveMsg('');
-
-    const updates = {
-      id:                       user.id,
-      full_name:                fullName.trim(),
-      phone:                    phone.trim(),
-      city:                     city.trim(),
-      pref_email_notifications: prefs.emailNotifications,
-      pref_push_notifications:  prefs.pushNotifications,
-      pref_marketing_emails:    prefs.marketingEmails,
-      pref_dark_mode:           prefs.darkMode,
-      updated_at:               new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(updates);           // upsert = insert if not exists, update if exists
-
-    setSaving(false);
-
-    if (error) {
-      setSaveMsg('error:' + error.message);
-    } else {
+    try {
+      const { data } = await api.put('/profile', {
+        fullName: fullName.trim(),
+        phone:    phone.trim(),
+        city:     city.trim(),
+        prefs,
+      });
+      setProfile(data);
       setSaveMsg('success:Profile saved successfully!');
       setEditMode(false);
-      fetchProfile();             // re-fetch to confirm saved values
+    } catch (err) {
+      setSaveMsg('error:' + (err.response?.data?.message ?? 'Save failed. Try again.'));
     }
-
+    setSaving(false);
     setTimeout(() => setSaveMsg(''), 4000);
   };
 
   // ── Cancel edit ────────────────────────────────────────────────────────
   const cancelEdit = () => {
-    setFullName(profile?.full_name ?? '');
-    setPhone(profile?.phone ?? '');
-    setCity(profile?.city ?? '');
+    setFullName(profile?.fullName ?? '');
+    setPhone(profile?.phone       ?? '');
+    setCity(profile?.city         ?? '');
     setEditMode(false);
     setSaveMsg('');
   };
@@ -118,12 +95,19 @@ export default function Profile({ user }) {
   };
 
   // ── Sign out ───────────────────────────────────────────────────────────
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    // App.jsx's onAuthStateChange listener will set user to null automatically
+  const handleSignOut = () => {
+    onSignOut(); // App.jsx removes token + sets user to null
   };
 
-  // ── Loading skeleton ───────────────────────────────────────────────────
+  // ── Check if prefs changed from saved ─────────────────────────────────
+  const prefsChanged = profile && (
+    prefs.emailNotifications !== (profile.prefs?.emailNotifications ?? true)  ||
+    prefs.pushNotifications  !== (profile.prefs?.pushNotifications  ?? true)  ||
+    prefs.marketingEmails    !== (profile.prefs?.marketingEmails    ?? false) ||
+    prefs.darkMode           !== (profile.prefs?.darkMode           ?? false)
+  );
+
+  // ── Loading ────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--text-muted)', gap: '10px' }}>
@@ -165,7 +149,6 @@ export default function Profile({ user }) {
             <span className="profile-badge">🏆 Top User</span>
           </div>
         </div>
-        {/* Sign out button */}
         <button
           className="btn btn-sm"
           onClick={handleSignOut}
@@ -177,7 +160,7 @@ export default function Profile({ user }) {
 
       <div className="grid-2">
 
-        {/* ── Personal Info card ────────────────────────────────────────── */}
+        {/* ── Personal Info ─────────────────────────────────────────────── */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="ti ti-user"></i>Personal Info</div>
@@ -214,7 +197,7 @@ export default function Profile({ user }) {
               />
             </div>
 
-            {/* Email — always read-only, comes from Supabase Auth */}
+            {/* Email — always read-only */}
             <div className="form-group">
               <label className="form-label">
                 Email
@@ -260,7 +243,7 @@ export default function Profile({ user }) {
         </div>
 
         <div>
-          {/* ── Ride Stats card ─────────────────────────────────────────── */}
+          {/* ── Ride Stats ────────────────────────────────────────────────── */}
           <div className="card" style={{ marginBottom: '14px' }}>
             <div className="card-header">
               <div className="card-title"><i className="ti ti-chart-bar"></i>Ride Stats</div>
@@ -268,10 +251,10 @@ export default function Profile({ user }) {
             <div className="card-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', textAlign: 'center' }}>
                 {[
-                  { val: '47',      label: 'Total Rides' },
-                  { val: '184 km',  label: 'Distance' },
-                  { val: '38h 20m', label: 'Time Riding' },
-                  { val: '$312',    label: 'Total Spent' },
+                  { val: '47',      label: 'Total Rides'  },
+                  { val: '184 km',  label: 'Distance'     },
+                  { val: '38h 20m', label: 'Time Riding'  },
+                  { val: '$312',    label: 'Total Spent'  },
                 ].map((s, i) => (
                   <div key={i} style={{ background: 'var(--bg)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ fontWeight: 700, fontSize: '20px', color: 'var(--primary)' }}>{s.val}</div>
@@ -282,20 +265,11 @@ export default function Profile({ user }) {
             </div>
           </div>
 
-          {/* ── Preferences card ────────────────────────────────────────── */}
+          {/* ── Preferences ───────────────────────────────────────────────── */}
           <div className="card">
             <div className="card-header">
               <div className="card-title"><i className="ti ti-settings"></i>Preferences</div>
-              {Object.values(prefs).some((v, i) => {
-                const keys = Object.keys(prefs);
-                const originals = {
-                  emailNotifications: profile?.pref_email_notifications ?? true,
-                  pushNotifications:  profile?.pref_push_notifications  ?? true,
-                  marketingEmails:    profile?.pref_marketing_emails    ?? false,
-                  darkMode:           profile?.pref_dark_mode           ?? false,
-                };
-                return prefs[keys[i]] !== originals[keys[i]];
-              }) && (
+              {prefsChanged && (
                 <button className="btn btn-sm btn-primary" onClick={saveProfile} disabled={saving}>
                   <i className="ti ti-check"></i> Save
                 </button>
@@ -317,8 +291,6 @@ export default function Profile({ user }) {
                   }}
                 >
                   <span style={{ fontSize: '13px' }}>{p.label}</span>
-
-                  {/* Toggle switch */}
                   <div
                     onClick={() => togglePref(p.key)}
                     style={{
