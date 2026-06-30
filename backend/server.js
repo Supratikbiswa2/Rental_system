@@ -8,7 +8,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://veloride.vercel.app', // placeholder — we'll update with real URL after deploy
+    'https://rental-system-three-ashy.vercel.apphttps://rental-system-three-ashy.vercel.app',
   ],
 }));
 app.use(express.json());
